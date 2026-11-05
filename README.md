@@ -19,12 +19,13 @@ push and pull request:
    [`esp-idf-sbom`](https://github.com/espressif/esp-idf-sbom). It lists ESP-IDF and
    what it bundles (FreeRTOS, lwIP, ...) with their CPEs; libraries compiled but not
    linked into the firmware are left out.
-3. Uploads the `climate-sensor` artifact:
+3. Uploads the `climate-sensor` artifact (kept 90 days):
 
    | File | |
    |---|---|
    | `climate-sensor.cdx.json` | The SBOM |
-   | `climate-sensor.cdx.json.sigstore.json` | SBOM attestation, signed (not on pull requests) |
+   | `climate-sensor.cdx.json.sigstore.json` | SBOM attestation bundle (not on pull requests) |
+   | `climate-sensor.provenance.sigstore.json` | Build provenance bundle (not on pull requests) |
    | `climate-sensor.factory.bin` | Full image, flash over USB at offset `0x0` |
    | `climate-sensor.ota.bin` | Over-the-air update |
 
@@ -36,8 +37,9 @@ for both firmware images, keyless with [Sigstore](https://www.sigstore.dev). The
 this repository, workflow and commit, and are recorded in Sigstore's public
 transparency log:
 
-- **Build provenance:** this workflow built these images.
-- **SBOM:** this SBOM describes exactly these images. Its bundle is also saved as
+- **Build provenance:** this workflow built these images. Saved as
+  `climate-sensor.provenance.sigstore.json`.
+- **SBOM:** this SBOM describes exactly these images. Saved as
   `climate-sensor.cdx.json.sigstore.json` and sent to Exposa (below).
 
 Check a downloaded image with:
@@ -48,8 +50,21 @@ gh attestation verify climate-sensor.ota.bin --repo schmidtfx/exposa-demo \
   --predicate-type https://cyclonedx.org/bom   # also shows the attested SBOM
 ```
 
+With the bundle files, `gh attestation verify` doesn't fetch the attestation from
+GitHub: add
+`--bundle climate-sensor.provenance.sigstore.json` (or the SBOM's bundle with the
+`--predicate-type` above).
+
 Attestations need the repository to be public (or on GitHub Enterprise Cloud), and
 Exposa accepts them from public repositories only.
+
+### Releases
+
+A tag `v*` also publishes a [GitHub release](https://github.com/schmidtfx/exposa-demo/releases)
+with both firmware images, the SBOM, both attestation bundles and `SHA256SUMS`.
+Artifacts expire after 90 days; releases stay, so each version can be downloaded and
+checked for as long as it is supported. Running the job again replaces the release's
+files.
 
 ### Upload to Exposa
 
