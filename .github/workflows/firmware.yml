@@ -1,0 +1,131 @@
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build firmware and SBOM
+    runs-on: ubuntu-latest
+    # The pinned ESPHome image: same ESPHome, PlatformIO and Python on every run.
+    container: ghcr.io/esphome/esphome:2024.10.3
+    permissions:
+      contents: read
+      id-token: write       # signs the attestations (Sigstore, no keys)
+      attestations: write   # stores them in this repository
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build
+        run: sh firmware/build.sh
+      # GitHub attestations, keyless with Sigstore, not for pull requests
+      # (README.md): which workflow and commit built the firmware, and that the
+      # SBOM describes exactly these firmware files. The SBOM attestation also
+      # goes to Exposa: upload-sbom sends <sbom>.sigstore.json with the SBOM.
+      - name: Attest build provenance
+        id: attest-provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/climate-sensor.*.bin
+      - name: Attest SBOM
+        id: attest-sbom
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-sbom@v4
+        with:
+          subject-path: dist/climate-sensor.*.bin
+          sbom-path: dist/climate-sensor.cdx.json
+      - name: Keep the attestation bundles
+        if: github.event_name != 'pull_request'
+        run: |
+          cp "$SBOM_BUNDLE" dist/climate-sensor.cdx.json.sigstore.json
+          cp "$PROVENANCE_BUNDLE" dist/climate-sensor.provenance.sigstore.json
+        env:
+          SBOM_BUNDLE: ${{ steps.attest-sbom.outputs.bundle-path }}
+          PROVENANCE_BUNDLE: ${{ steps.attest-provenance.outputs.bundle-path }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: climate-sensor
+          path: dist/
+          if-no-files-found: error
+
+  # On a version tag, send the SBOM to Exposa. Runs only when the repository
+  # variables EXPOSA_URL and EXPOSA_ORG are set and Exposa trusts this repository
+  # (Trusted publishers); see README.md.
+  upload:
+    name: Upload SBOM to Exposa
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && vars.EXPOSA_URL != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # lets the job prove to Exposa which repository it runs in
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: climate-sensor
+          path: dist
+      - uses: schmidtfx/upload-sbom@v1
+        with:
+          url: ${{ vars.EXPOSA_URL }}
+          organization: ${{ vars.EXPOSA_ORG }}
+          product: Climate Sensor
+          hardware-revision: esp32dev
+          version: ${{ github.ref_name }}
+          sbom: dist/climate-sensor.cdx.json
+
+  # On a version tag, publish a GitHub release with the firmware, its SBOM and
+  # the attestation bundles. Artifacts expire after 90 days; releases stay, so
+  # anyone can download and verify a release for as long as it is supported.
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the release and upload its files
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: climate-sensor
+          path: dist
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS && cat SHA256SUMS
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          NOTES: |
+            Firmware for the ESPHome climate sensor (ESP32, `esp32dev`).
+
+            | File | |
+            |---|---|
+            | `climate-sensor.factory.bin` | Full image, flash over USB at offset `0x0` |
+            | `climate-sensor.ota.bin` | Over-the-air update |
+            | `climate-sensor.cdx.json` | SBOM (CycloneDX 1.6) |
+            | `climate-sensor.cdx.json.sigstore.json` | SBOM attestation bundle |
+            | `climate-sensor.provenance.sigstore.json` | Build provenance bundle |
+            | `SHA256SUMS` | Checksums |
+
+            Verify a download (see the README):
+
+            ```sh
+            gh attestation verify climate-sensor.ota.bin --repo ${{ github.repository }}
+            gh attestation verify climate-sensor.ota.bin --repo ${{ github.repository }} \
+              --predicate-type https://cyclonedx.org/bom
+            ```
+        # Re-running the job replaces the files of an existing release.
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "$TAG" --notes "$NOTES" --generate-notes
+          fi

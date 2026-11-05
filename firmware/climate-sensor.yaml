@@ -1,0 +1,39 @@
+# A small ESPHome device: an ESP32 climate sensor (BME280 over I²C) on the
+# ESP-IDF framework. CI builds it and writes its SBOM; see README.md.
+esphome:
+  name: climate-sensor
+  project:
+    name: exposa.climate-sensor
+    version: "1.0.0"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+
+# Dummy credentials: the build only needs them to be set.
+wifi:
+  ssid: "exposa-demo"
+  password: "not-a-real-password"
+
+api:
+
+ota:
+  - platform: esphome
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+sensor:
+  - platform: bme280_i2c
+    address: 0x76
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    pressure:
+      name: "Pressure"
+    update_interval: 60s
