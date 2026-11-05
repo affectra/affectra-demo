@@ -27,6 +27,20 @@ push and pull request:
    | `climate-sensor.factory.bin` | Full image, flash over USB at offset `0x0` |
    | `climate-sensor.ota.bin` | Over-the-air update |
 
+On pushes to `main` and tags (not pull requests) it also signs two
+[artifact attestations](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations)
+for both firmware images: build provenance (this repository, workflow and commit
+built them) and the SBOM (this SBOM describes them). Check a downloaded image with:
+
+```sh
+gh attestation verify climate-sensor.ota.bin --repo schmidtfx/exposa-demo
+gh attestation verify climate-sensor.ota.bin --repo schmidtfx/exposa-demo \
+  --predicate-type https://cyclonedx.org/bom
+```
+
+The second command shows the attested SBOM. Attestations need the repository to be
+public (or on GitHub Enterprise Cloud).
+
 On a tag `v*` it also uploads the SBOM to Exposa, into product **Climate Sensor**,
 hardware revision **esp32dev**, version = the tag. To turn that on:
 

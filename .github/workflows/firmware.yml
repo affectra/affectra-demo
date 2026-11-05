@@ -16,10 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     # The pinned ESPHome image: same ESPHome, PlatformIO and Python on every run.
     container: ghcr.io/esphome/esphome:2024.10.3
+    permissions:
+      contents: read
+      id-token: write       # signs the attestations (Sigstore, no keys)
+      attestations: write   # stores them in this repository
     steps:
       - uses: actions/checkout@v7
       - name: Build
         run: sh firmware/build.sh
+      # Signed statements anyone can check with `gh attestation verify`
+      # (README.md): which workflow and commit built the firmware, and that
+      # the SBOM describes exactly these firmware files. Not for pull requests.
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/climate-sensor.*.bin
+      - name: Attest SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-sbom@v4
+        with:
+          subject-path: dist/climate-sensor.*.bin
+          sbom-path: dist/climate-sensor.cdx.json
       - uses: actions/upload-artifact@v7
         with:
           name: climate-sensor
