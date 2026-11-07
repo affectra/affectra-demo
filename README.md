@@ -1,7 +1,7 @@
 # affectra-demo
 
 A small ESPHome device whose CI builds the firmware and writes its SBOM, for
-trying out [Affectra](https://github.com/schmidtfx/affectra).
+trying out [Affectra](https://github.com/affectra/affectra).
 
 ## The device
 
@@ -45,8 +45,8 @@ transparency log:
 Check a downloaded image with:
 
 ```sh
-gh attestation verify climate-sensor.ota.bin --repo schmidtfx/affectra-demo
-gh attestation verify climate-sensor.ota.bin --repo schmidtfx/affectra-demo \
+gh attestation verify climate-sensor.ota.bin --repo affectra/affectra-demo
+gh attestation verify climate-sensor.ota.bin --repo affectra/affectra-demo \
   --predicate-type https://cyclonedx.org/bom   # also shows the attested SBOM
 ```
 
@@ -60,7 +60,7 @@ Affectra accepts them from public repositories only.
 
 ### Releases
 
-A tag `v*` also publishes a [GitHub release](https://github.com/schmidtfx/affectra-demo/releases)
+A tag `v*` also publishes a [GitHub release](https://github.com/affectra/affectra-demo/releases)
 with both firmware images, the SBOM, both attestation bundles and `SHA256SUMS`.
 Artifacts expire after 90 days; releases stay, so each version can be downloaded and
 checked for as long as it is supported. Running the job again replaces the release's
