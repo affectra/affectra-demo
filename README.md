@@ -69,7 +69,7 @@ files.
 ### Upload to Affectra
 
 On a tag `v*` the SBOM goes to Affectra with its attestation, into product
-**Climate Sensor**, hardware revision **esp32dev**, version = the tag. Affectra checks
+**Climate Sensor**, variant **esp32dev**, version = the tag. Affectra checks
 the attestation, marks the SBOM **signed** because the same trusted repository made
 it, and lists the two firmware images it describes. To turn that on:
 
