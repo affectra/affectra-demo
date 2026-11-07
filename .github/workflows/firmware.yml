@@ -71,12 +71,12 @@ jobs:
         with:
           name: climate-sensor
           path: dist
-      - uses: affectra/upload-sbom@v1
+      - uses: affectra/upload-sbom@v2
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.AFFECTRA_ORG }}
           product: Climate Sensor
-          hardware-revision: esp32dev
+          variant: esp32dev
           version: ${{ github.ref_name }}
           sbom: dist/climate-sensor.cdx.json
 
