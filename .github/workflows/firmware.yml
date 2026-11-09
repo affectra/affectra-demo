@@ -71,7 +71,7 @@ jobs:
         with:
           name: climate-sensor
           path: dist
-      - uses: affectra/upload-sbom@v2
+      - uses: affectra/upload-sbom@7a9b4549a661d93a4a145573a2b28a2e499ff0f6 # v2.0.2
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.AFFECTRA_ORG }}
