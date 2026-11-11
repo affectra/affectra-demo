@@ -71,7 +71,9 @@ files.
 On a tag `v*` the SBOM goes to Affectra with its attestation, into product
 **Climate Sensor**, variant **esp32dev**, version = the tag. Affectra checks
 the attestation, marks the SBOM **signed** because the same trusted repository made
-it, and lists the two firmware images it describes. To turn that on:
+it, and lists the two firmware images it describes. The build provenance goes to the
+same release: the **Firmware** tab then shows each image as built by `firmware.yml` at
+the tag and described by the SBOM. To turn that on:
 
 1. In Affectra, as an organization admin: **Trusted publishers**, trust this
    repository (optionally only `firmware.yml` and `refs/tags/v*`; leave the
@@ -80,8 +82,8 @@ it, and lists the two firmware images it describes. To turn that on:
 2. In this repository: **Settings → Secrets and variables → Actions → Variables**,
    set `AFFECTRA_URL` (your instance) and `AFFECTRA_ORG` (the organization slug).
 
-Without `AFFECTRA_URL` the upload job is skipped. The build provenance attestation is
-not sent; Affectra does not use it yet.
+Without `AFFECTRA_URL` the upload job is skipped. Uploading build provenance needs
+Affectra API 0.1.6 or later.
 
 ESP-IDF 4.4.8 has known vulnerabilities (e.g. CVE-2025-55297, CVE-2025-66409), so
 the release in Affectra has findings to look at and assess.
