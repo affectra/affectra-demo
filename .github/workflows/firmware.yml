@@ -26,8 +26,9 @@ jobs:
         run: sh firmware/build.sh
       # GitHub attestations, keyless with Sigstore, not for pull requests
       # (README.md): which workflow and commit built the firmware, and that the
-      # SBOM describes exactly these firmware files. The SBOM attestation also
-      # goes to Affectra: upload-sbom sends <sbom>.sigstore.json with the SBOM.
+      # SBOM describes exactly these firmware files. Both go to Affectra:
+      # upload-sbom sends <sbom>.sigstore.json with the SBOM, and the provenance
+      # bundle as its provenance input.
       - name: Attest build provenance
         id: attest-provenance
         if: github.event_name != 'pull_request'
@@ -59,7 +60,7 @@ jobs:
   # variables AFFECTRA_URL and AFFECTRA_ORG are set and Affectra trusts this repository
   # (Trusted publishers); see README.md.
   upload:
-    name: Upload SBOM to Affectra
+    name: Upload SBOM and build provenance to Affectra
     needs: build
     if: startsWith(github.ref, 'refs/tags/v') && vars.AFFECTRA_URL != ''
     runs-on: ubuntu-latest
@@ -71,7 +72,7 @@ jobs:
         with:
           name: climate-sensor
           path: dist
-      - uses: affectra/upload-sbom@7a9b4549a661d93a4a145573a2b28a2e499ff0f6 # v2.0.2
+      - uses: affectra/upload-sbom@9d96158dc5e1155428b006b8d1fa37458afb5e98 # v2.1.0
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.AFFECTRA_ORG }}
@@ -79,6 +80,7 @@ jobs:
           variant: esp32dev
           version: ${{ github.ref_name }}
           sbom: dist/climate-sensor.cdx.json
+          provenance: dist/climate-sensor.provenance.sigstore.json
 
   # On a version tag, publish a GitHub release with the firmware, its SBOM and
   # the attestation bundles. Artifacts expire after 90 days; releases stay, so
