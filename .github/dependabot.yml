@@ -1,0 +1,13 @@
+# Dependabot keeps the GitHub Actions in .github/workflows up to date: one grouped
+# PR a week. Review the upstream diff before merging. Dependabot does not update the
+# ESPHome container image in firmware.yml; bump it by hand, since a new ESPHome
+# version changes the firmware and its SBOM.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
