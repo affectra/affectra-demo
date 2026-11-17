@@ -42,10 +42,10 @@ REPO_BY_NAME = {
     "arduino-sht": "sensirion/arduino-sht",
 }
 
-# Arduino cores: package:architecture -> GitHub repository.
-CORE_REPOS = {
-    "esp32:esp32": "espressif/arduino-esp32",
-    "esp8266:esp8266": "esp8266/arduino",
+# Arduino cores: package:architecture -> (component name, GitHub repository).
+CORES = {
+    "esp32:esp32": ("arduino-esp32", "espressif/arduino-esp32"),
+    "esp8266:esp8266": ("esp8266-arduino", "esp8266/arduino"),
 }
 
 NS = uuid.UUID("6f1c3c1e-7a51-4f43-9a8e-2b8f0f6d4a10")
@@ -253,8 +253,8 @@ def sbom(firmware, sketch, fqbn, version, br):
     mcu = props.get("build.mcu", "")
 
     core_version = platform.get("version")
-    core = component("core", CORE_REPOS.get(core_id, core_id).split("/")[-1], core_version,
-                     gh_purl(CORE_REPOS.get(core_id), core_version), ctype="framework",
+    core_name, core_repo = CORES.get(core_id, (core_id, None))
+    core = component("core", core_name, core_version, gh_purl(core_repo, core_version), ctype="framework",
                      description=f"Arduino core {core_id}")
     sdk = sdk_components(core_dir, mcu) if core_dir and mcu else []
 
