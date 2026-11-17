@@ -131,14 +131,18 @@ def build(firmware, sketch, fqbn):
         elif "name" in lib:
             spec = f"{lib['name']}@{lib['version']}" if lib.get("version") else lib["name"]
             run(["arduino-cli", "lib", "install", spec])
-    out = run(
-        ["arduino-cli", "compile", "--format", "json", "--fqbn", fqbn, *lib_args, *flags,
-         os.path.join(firmware, "examples", sketch)],
-        capture=True,
-    )
-    result = json.loads(out)
-    if not result.get("success", True):
-        sys.exit("compile failed:\n" + result.get("compiler_err", ""))
+    args = ["arduino-cli", "compile", "--format", "json", "--fqbn", fqbn, *lib_args, *flags,
+            os.path.join(firmware, "examples", sketch)]
+    log("+ " + " ".join(args))
+    p = subprocess.run(args, capture_output=True, text=True)
+    try:
+        result = json.loads(p.stdout)
+    except json.JSONDecodeError:
+        result = {"success": False, "compiler_err": p.stdout}
+    if p.returncode != 0 or not result.get("success", True):
+        sys.exit("compile failed:\n" + "\n".join(
+            x for x in (result.get("compiler_out", "")[-4000:], result.get("compiler_err", "")[-8000:],
+                        result.get("error", ""), p.stderr[-4000:]) if x))
     br = result.get("builder_result") or result
     if "used_libraries" not in br:
         sys.exit(f"unexpected arduino-cli output, keys: {sorted(result)}")
