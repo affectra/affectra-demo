@@ -74,7 +74,8 @@ jobs:
       - uses: arduino/setup-arduino-cli@v2
         with:
           version: 1.6.0
-      - run: pip install PyYAML==6.0.2
+      # pyserial: the ESP32 core runs esptool.py with the Python on PATH.
+      - run: pip install PyYAML==6.0.2 pyserial==3.5
       - name: Build and write the SBOM
         env:
           TAG: ${{ needs.tag.outputs.tag }}
