@@ -88,6 +88,12 @@ Affectra API 0.1.6 or later.
 ESP-IDF 4.4.8 has known vulnerabilities (e.g. CVE-2025-55297, CVE-2025-66409), so
 the release in Affectra has findings to look at and assess.
 
+## AirGradient pilot
+
+[`airgradient/`](airgradient/) builds SBOMs for the open-source AirGradient air
+quality monitor firmware from its release tags and uploads them to Affectra. See
+[`airgradient/README.md`](airgradient/README.md).
+
 ## Build locally
 
 Needs Docker or Podman; the first build takes a few minutes.

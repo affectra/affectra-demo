@@ -1,0 +1,119 @@
+name: AirGradient
+
+# Pilot: SBOMs for the open-source AirGradient firmware
+# (github.com/Open-Air-Foundation/firmware-one-openair), built here from its
+# release tags, so Affectra can track its vulnerabilities without a change in that
+# repository. See airgradient/README.md.
+
+on:
+  # Daily: build the latest release. The SBOM is deterministic, so uploading an
+  # unchanged release again changes nothing in Affectra.
+  schedule:
+    - cron: "23 5 * * *"
+  # By hand, for one tag, e.g. to backfill older releases.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Firmware tag, e.g. 3.6.6 (empty for the latest release)
+        required: false
+  pull_request:
+    paths:
+      - airgradient/**
+      - .github/workflows/airgradient.yml
+
+permissions:
+  contents: read
+
+env:
+  FIRMWARE_REPO: Open-Air-Foundation/firmware-one-openair
+
+jobs:
+  tag:
+    name: Pick the firmware tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -z "$TAG" ]; then
+            TAG=$(gh api "repos/$FIRMWARE_REPO/releases/latest" --jq .tag_name)
+          fi
+          case "$TAG" in *[!A-Za-z0-9._-]*|"") echo "bad tag: $TAG"; exit 1;; esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Firmware $TAG" >> "$GITHUB_STEP_SUMMARY"
+
+  sbom:
+    name: SBOM ${{ matrix.variant }}
+    needs: tag
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Variant = the sketch the firmware's CI builds for that board.
+          - { variant: one-openair, sketch: OneOpenAir, fqbn: "esp32:esp32:esp32c3" }
+          - { variant: diy-pro-v4.2, sketch: DiyProIndoorV4_2, fqbn: "esp8266:esp8266:d1_mini" }
+          - { variant: diy-pro-v3.3, sketch: DiyProIndoorV3_3, fqbn: "esp8266:esp8266:d1_mini" }
+          - { variant: diy-basic, sketch: BASIC, fqbn: "esp8266:esp8266:d1_mini" }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.FIRMWARE_REPO }}
+          ref: ${{ needs.tag.outputs.tag }}
+          submodules: true
+          path: fw
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: arduino/setup-arduino-cli@v2
+        with:
+          version: 1.6.0
+      - run: pip install PyYAML==6.0.2
+      - name: Build and write the SBOM
+        env:
+          TAG: ${{ needs.tag.outputs.tag }}
+          SKETCH: ${{ matrix.sketch }}
+          FQBN: ${{ matrix.fqbn }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          python -I airgradient/sbom.py --firmware fw --sketch "$SKETCH" --fqbn "$FQBN" \
+            --version "$TAG" --out "dist/airgradient-$VARIANT.cdx.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: airgradient-${{ matrix.variant }}
+          path: dist/
+          if-no-files-found: error
+
+  # Runs only when the repository variables are set and Affectra trusts this
+  # repository for airgradient.yml (Trusted publishers); see airgradient/README.md.
+  upload:
+    name: Upload ${{ matrix.variant }} to Affectra
+    needs: [tag, sbom]
+    if: github.event_name != 'pull_request' && vars.AFFECTRA_URL != '' && vars.AIRGRADIENT_ORG != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # lets the job prove to Affectra which repository it runs in
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [one-openair, diy-pro-v4.2, diy-pro-v3.3, diy-basic]
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: airgradient-${{ matrix.variant }}
+          path: dist
+      - uses: affectra/upload-sbom@9d96158dc5e1155428b006b8d1fa37458afb5e98 # v2.1.0
+        with:
+          url: ${{ vars.AFFECTRA_URL }}
+          organization: ${{ vars.AIRGRADIENT_ORG }}
+          product: AirGradient
+          variant: ${{ matrix.variant }}
+          version: ${{ needs.tag.outputs.tag }}
+          sbom: dist/airgradient-${{ matrix.variant }}.cdx.json

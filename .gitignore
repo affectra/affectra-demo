@@ -1,2 +1,3 @@
 dist/
 firmware/.esphome/
+__pycache__/
