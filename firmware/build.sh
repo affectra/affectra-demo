@@ -27,4 +27,13 @@ mkdir -p "$dist"
   -o "$dist/$name.cdx.json" "$pioenv/project_description.json"
 cp "$pioenv/firmware.factory.bin" "$dist/$name.factory.bin"  # flash over USB
 cp "$pioenv/firmware.ota.bin" "$dist/$name.ota.bin"          # update over the air
+# The ESP-IDF Kconfig the firmware was built with, for Affectra's build config:
+# it tells which findings' code this build leaves out (upload-sbom build-config).
+sdkconfig=$work/.esphome/build/$name/sdkconfig.$name
+if [ ! -f "$sdkconfig" ]; then
+  echo "no sdkconfig at $sdkconfig; ESP-IDF's sdkconfig files are:" >&2
+  find "$work/.esphome/build/$name" -maxdepth 2 -name 'sdkconfig*' >&2
+  exit 1
+fi
+cp "$sdkconfig" "$dist/$name.sdkconfig"
 ls -l "$dist"

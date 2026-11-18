@@ -110,7 +110,7 @@ jobs:
         with:
           name: airgradient-${{ matrix.variant }}
           path: dist
-      - uses: affectra/upload-sbom@9d96158dc5e1155428b006b8d1fa37458afb5e98 # v2.1.0
+      - uses: affectra/upload-sbom@5c70c08c39e71063a104398ef09a3cb40305192f # v2.3.0
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.AIRGRADIENT_ORG }}
