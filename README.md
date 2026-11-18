@@ -28,6 +28,7 @@ push and pull request:
    | `climate-sensor.provenance.sigstore.json` | Build provenance bundle (not on pull requests) |
    | `climate-sensor.factory.bin` | Full image, flash over USB at offset `0x0` |
    | `climate-sensor.ota.bin` | Over-the-air update |
+   | `climate-sensor.sdkconfig` | ESP-IDF build configuration (Kconfig) |
 
 ### Signatures
 
@@ -72,8 +73,10 @@ On a tag `v*` the SBOM goes to Affectra with its attestation, into product
 **Climate Sensor**, variant **esp32dev**, version = the tag. Affectra checks
 the attestation, marks the SBOM **signed** because the same trusted repository made
 it, and lists the two firmware images it describes. The build provenance goes to the
-same release: the **Firmware** tab then shows each image as built by `firmware.yml` at
-the tag and described by the SBOM. To turn that on:
+same release: the **Artifacts** tab then shows each image as built by `firmware.yml` at
+the tag and described by the SBOM. The build's ESP-IDF `sdkconfig` becomes the
+release's build config: findings whose code this build leaves out, such as FreeRTOS's
+ARM MPU ports on this Xtensa chip, are marked **Not built**. To turn that on:
 
 1. In Affectra, as an organization admin: **Trusted publishers**, trust this
    repository (optionally only `firmware.yml` and `refs/tags/v*`; leave the
@@ -83,7 +86,7 @@ the tag and described by the SBOM. To turn that on:
    set `AFFECTRA_URL` (your instance) and `AFFECTRA_ORG` (the organization slug).
 
 Without `AFFECTRA_URL` the upload job is skipped. Uploading build provenance needs
-Affectra API 0.1.6 or later.
+Affectra API 0.1.6 or later, and the build config API 0.1.12 or later.
 
 ESP-IDF 4.4.8 has known vulnerabilities (e.g. CVE-2025-55297, CVE-2025-66409), so
 the release in Affectra has findings to look at and assess.

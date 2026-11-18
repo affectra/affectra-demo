@@ -60,7 +60,7 @@ jobs:
   # variables AFFECTRA_URL and AFFECTRA_ORG are set and Affectra trusts this repository
   # (Trusted publishers); see README.md.
   upload:
-    name: Upload SBOM and build provenance to Affectra
+    name: Upload SBOM, build provenance and build config to Affectra
     needs: build
     if: startsWith(github.ref, 'refs/tags/v') && vars.AFFECTRA_URL != ''
     runs-on: ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
         with:
           name: climate-sensor
           path: dist
-      - uses: affectra/upload-sbom@9d96158dc5e1155428b006b8d1fa37458afb5e98 # v2.1.0
+      - uses: affectra/upload-sbom@5c70c08c39e71063a104398ef09a3cb40305192f # v2.3.0
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.AFFECTRA_ORG }}
@@ -81,6 +81,9 @@ jobs:
           version: ${{ github.ref_name }}
           sbom: dist/climate-sensor.cdx.json
           provenance: dist/climate-sensor.provenance.sigstore.json
+          # ESP-IDF's sdkconfig: findings whose code this build leaves out (such as
+          # FreeRTOS's ARM MPU ports on this Xtensa chip) are marked as not built.
+          build-config: dist/climate-sensor.sdkconfig
 
   # On a version tag, publish a GitHub release with the firmware, its SBOM and
   # the attestation bundles. Artifacts expire after 90 days; releases stay, so
@@ -114,6 +117,7 @@ jobs:
             | `climate-sensor.cdx.json` | SBOM (CycloneDX 1.6) |
             | `climate-sensor.cdx.json.sigstore.json` | SBOM attestation bundle |
             | `climate-sensor.provenance.sigstore.json` | Build provenance bundle |
+            | `climate-sensor.sdkconfig` | ESP-IDF build configuration |
             | `SHA256SUMS` | Checksums |
 
             Verify a download (see the README):
