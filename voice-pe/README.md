@@ -43,8 +43,9 @@ the tag (`esphome-version` in its `build.yml`):
 4. The ESP-IDF `sdkconfig` is kept as `voice-pe.sdkconfig`, the release's build
    config, and the firmware images as `voice-pe.factory.bin` and `voice-pe.ota.bin`.
 
-The AI BOM has no timestamp and a serial number derived from its content, so the same
-tag gives the same file as long as the models don't change.
+Both SBOMs have no timestamp and a serial number derived from their content (`aibom.py`
+removes the ones `esp-idf-sbom` writes), so the same tag gives the same files as long
+as upstream doesn't change, and the daily upload of an unchanged release adds nothing.
 
 Run it locally (Docker or Podman; the first build takes a while):
 

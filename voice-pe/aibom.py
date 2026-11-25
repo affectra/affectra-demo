@@ -215,14 +215,23 @@ def main():
         f.write("\n")
     print(f"{a.out}: {len(models)} models", file=sys.stderr)
 
-    if a.sbom and cfg.get("voice_kit", {}).get("firmware"):
+    if a.sbom:
         with open(a.sbom) as f:
             sbom = json.load(f)
-        sbom.setdefault("components", []).append(xmos_component(cfg["voice_kit"], a.data_dir))
+        if cfg.get("voice_kit", {}).get("firmware"):
+            sbom.setdefault("components", []).append(xmos_component(cfg["voice_kit"], a.data_dir))
+            print(f"{a.sbom}: added the XMOS firmware", file=sys.stderr)
+        # esp-idf-sbom writes a timestamp and a random serial number; without
+        # them the same tag gives the same file, so a daily upload of an unchanged
+        # release is "already there" instead of another copy.
+        sbom.get("metadata", {}).pop("timestamp", None)
+        sbom.pop("serialNumber", None)
+        body = json.dumps(sbom, sort_keys=True)
+        sbom = {"bomFormat": sbom.pop("bomFormat"), "specVersion": sbom.pop("specVersion"),
+                "serialNumber": f"urn:uuid:{uuid.uuid5(NS, body)}", **sbom}
         with open(a.sbom, "w") as f:
             json.dump(sbom, f, indent=2)
             f.write("\n")
-        print(f"{a.sbom}: added the XMOS firmware", file=sys.stderr)
 
 
 if __name__ == "__main__":
