@@ -1,3 +1,4 @@
 dist/
 firmware/.esphome/
 __pycache__/
+fw/
