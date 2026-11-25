@@ -60,4 +60,7 @@ if [ -z "$sdkconfig" ]; then
   exit 1
 fi
 cp "$sdkconfig" "$dist/voice-pe.sdkconfig"
+# The images the models are in; CI attests the SBOMs against them.
+cp "$pdir/firmware.factory.bin" "$dist/voice-pe.factory.bin"  # flash over USB
+cp "$pdir/firmware.ota.bin" "$dist/voice-pe.ota.bin"          # update over the air
 ls -l "$dist"

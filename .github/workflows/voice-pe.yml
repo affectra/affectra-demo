@@ -56,6 +56,10 @@ jobs:
     needs: tag
     runs-on: ubuntu-latest
     container: ghcr.io/esphome/esphome:${{ needs.tag.outputs.esphome }}
+    permissions:
+      contents: read
+      id-token: write       # signs the attestations (Sigstore, no keys)
+      attestations: write   # stores them in this repository
     steps:
       - uses: actions/checkout@v7
       - uses: actions/checkout@v7
@@ -66,6 +70,34 @@ jobs:
           persist-credentials: false
       - name: Build
         run: sh voice-pe/build.sh fw "${{ needs.tag.outputs.tag }}"
+      # GitHub attestations, keyless with Sigstore, not for pull requests: both
+      # SBOMs describe exactly these firmware images. upload-sbom sends
+      # <sbom>.sigstore.json with each SBOM; the AI BOM's attestation is what
+      # makes a model's Shipped step on the AI models tab a verified signature.
+      # They cover this repository's build of the tag, not the image Nabu Casa
+      # ships (ESPHome puts the build time into the image).
+      - name: Attest the firmware SBOM
+        id: attest-sbom
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-sbom@v4
+        with:
+          subject-path: dist/voice-pe.*.bin
+          sbom-path: dist/voice-pe.cdx.json
+      - name: Attest the AI BOM
+        id: attest-aibom
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-sbom@v4
+        with:
+          subject-path: dist/voice-pe.*.bin
+          sbom-path: dist/voice-pe.aibom.cdx.json
+      - name: Keep the attestation bundles
+        if: github.event_name != 'pull_request'
+        run: |
+          cp "$SBOM_BUNDLE" dist/voice-pe.cdx.json.sigstore.json
+          cp "$AIBOM_BUNDLE" dist/voice-pe.aibom.cdx.json.sigstore.json
+        env:
+          SBOM_BUNDLE: ${{ steps.attest-sbom.outputs.bundle-path }}
+          AIBOM_BUNDLE: ${{ steps.attest-aibom.outputs.bundle-path }}
       - uses: actions/upload-artifact@v7
         with:
           name: voice-pe
