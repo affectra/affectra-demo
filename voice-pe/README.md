@@ -41,7 +41,7 @@ the tag (`esphome-version` in its `build.yml`):
    microWakeWord trains on. It also adds the XMOS firmware, with its SHA-256 and MD5,
    to the firmware SBOM.
 4. The ESP-IDF `sdkconfig` is kept as `voice-pe.sdkconfig`, the release's build
-   config.
+   config, and the firmware images as `voice-pe.factory.bin` and `voice-pe.ota.bin`.
 
 The AI BOM has no timestamp and a serial number derived from its content, so the same
 tag gives the same file as long as the models don't change.
@@ -59,6 +59,27 @@ docker run --rm -v "$PWD":/src -w /src --entrypoint sh \
 [`voice-pe.yml`](../.github/workflows/voice-pe.yml) runs daily for the latest release
 and by hand for any tag (**Run workflow**, enter e.g. `26.6.0`). The files are kept as
 artifacts. On pull requests it only builds.
+
+Outside pull requests it also signs two GitHub
+[artifact attestations](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations),
+keyless with Sigstore: the firmware SBOM and the AI BOM each describe exactly the two
+firmware images. Both bundles go to Affectra with their SBOM. The AI BOM's attestation
+fills in **Shipped** in each model's provenance on the **AI models** tab: this
+repository's build put this exact model file into the release.
+
+| Provenance step | Here |
+|---|---|
+| **Trained** | Missing: neither microWakeWord nor ESPHome signs its models. |
+| **Derived** | Not converted: the AI BOM names no model the shipped one was derived from. |
+| **Shipped** | Verified signature, once Affectra trusts `voice-pe.yml`. |
+| **Loaded** | No unit reports it: the device runs ESPHome, not Affectra's collector. |
+
+Check a downloaded image against the AI BOM with:
+
+```sh
+gh attestation verify voice-pe.ota.bin --repo affectra/affectra-demo \
+  --predicate-type https://cyclonedx.org/bom
+```
 
 To upload to Affectra, into product **Home Assistant Voice PE**, variant `voice-pe`,
 version = the tag (both SBOMs and the build config go to the same release):
@@ -79,5 +100,9 @@ Without `VOICE_PE_ORG` the upload job is skipped.
   esphome/micro-wake-word-models, not from a release. Their version is the model
   format (`v2`); the digest tells which file it was. The "stop" model has no version.
 - Only `home-assistant-voice.factory.yaml` is built, not the 8 MB variant.
+- The attestations cover this repository's build of the tag. ESPHome puts the build
+  time into the image, so it is not byte for byte the image Nabu Casa ships over the
+  air. The model files are the same, unless a model on the `main` branch above has
+  changed since the tag was built.
 - The XMOS firmware is listed by its release and digest only; what it is built from is
   not known here.
