@@ -97,6 +97,13 @@ the release in Affectra has findings to look at and assess.
 quality monitor firmware from its release tags and uploads them to Affectra. See
 [`airgradient/README.md`](airgradient/README.md).
 
+## Home Assistant Voice PE pilot
+
+[`voice-pe/`](voice-pe/) builds an SBOM and an AI BOM for the Home Assistant Voice
+PE firmware from its release tags: the wake word and voice activity detection models
+it runs on the device, with their digests and the datasets they were trained on. See
+[`voice-pe/README.md`](voice-pe/README.md).
+
 ## Build locally
 
 Needs Docker or Podman; the first build takes a few minutes.
