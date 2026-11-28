@@ -119,7 +119,7 @@ jobs:
         with:
           name: voice-pe
           path: dist
-      - uses: affectra/upload-sbom@5c70c08c39e71063a104398ef09a3cb40305192f # v2.3.0
+      - uses: affectra/upload-sbom@353a4df52efc8f63e5e43fd1e31d2641838d7d38 # v2.4.0
         with:
           url: ${{ vars.AFFECTRA_URL }}
           organization: ${{ vars.VOICE_PE_ORG }}
